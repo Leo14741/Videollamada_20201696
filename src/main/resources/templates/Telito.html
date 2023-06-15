@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Videollamada</title>
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <script src="https://media.twiliocdn.com/sdk/js/video/releases/2.20.1/twilio-video.min.js"></script>
+</head>
+<body>
+<h1>Videollamada</h1>
+<form id="videoCallForm" action="/api/start-video-call" method="POST">
+    <button type="submit">Iniciar videollamada</button>
+</form>
+<div id="resultContainer"></div>
+<div id="videoContainer"></div>
+
+<script>
+    $(document).ready(function() {
+        $("#videoCallForm").submit(function(event) {
+            event.preventDefault();
+            $.ajax({
+                url: $(this).attr("action"),
+                type: $(this).attr("method"),
+                success: function(response) {
+                    $("#resultContainer").text("Identificador de la sala: " + response);
+                    // Mostrar la videollamada en un widget
+                    showVideoWidget(response);
+                },
+                error: function(error) {
+                    $("#resultContainer").text("Error al iniciar la videollamada");
+                    console.log(error);
+                }
+            });
+        });
+    });
+
+    function showVideoWidget(roomSid) {
+        Twilio.Video.createLocalTracks().then(function(localTracks) {
+            return Twilio.Video.connect(roomSid, {
+                name: roomSid,
+                tracks: localTracks,
+                video: { width: 640 }
+            });
+        }).then(function(room) {
+            var videoContainer = document.getElementById('videoContainer');
+            room.localParticipant.tracks.forEach(function(track) {
+                videoContainer.appendChild(track.attach());
+            });
+            room.on('trackAdded', function(track) {
+                videoContainer.appendChild(track.attach());
+            });
+            room.on('trackRemoved', function(track) {
+                track.detach().forEach(function(element) {
+                    element.remove();
+                });
+            });
+        }).catch(function(error) {
+            console.error('Error al unirse a la sala:', error);
+        });
+    }
+</script>
+</body>
+</html>
